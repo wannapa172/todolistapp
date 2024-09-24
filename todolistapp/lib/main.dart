@@ -34,13 +34,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  ThemeMode _themeMode = ThemeMode.light; // Default theme is light mode
-
-  void _toggleTheme() {
-    setState(() {
-      _themeMode = (_themeMode == ThemeMode.light) ? ThemeMode.dark : ThemeMode.light;
-    });
-  }
+  ThemeMode _themeMode = ThemeMode.light; // Default theme
 
   @override
   Widget build(BuildContext context) {
@@ -48,43 +42,19 @@ class _MyAppState extends State<MyApp> {
       title: 'Flutter Todo',
       theme: ThemeData(
         primarySwatch: Colors.teal,
-        hintColor: Colors.orangeAccent,
         brightness: Brightness.light,
-        textTheme: TextTheme(
-          titleLarge: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-        ),
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          backgroundColor: Colors.teal,
-          foregroundColor: Colors.white,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.teal, width: 2.0),
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        ),
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.teal,
-        hintColor: Colors.orangeAccent,
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          backgroundColor: Colors.teal,
-          foregroundColor: Colors.white,
-        ),
-        textTheme: TextTheme(
-          titleLarge: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-        ),
       ),
-      themeMode: _themeMode, // Switches between light and dark mode
-      home: TodoScreen(
-        onThemeChanged: _toggleTheme,
-        currentThemeMode: _themeMode,
-      ),
+      themeMode: _themeMode, // Switch between themes
+      home: SigninScreen(), // Start with SigninScreen
+      routes: {
+        '/signin': (context) => SigninScreen(),
+        '/signup': (context) => SignupScreen(), // Add SignupScreen to routes
+        // Add other routes here if necessary
+      },
     );
   }
 }
@@ -104,6 +74,12 @@ class _TodoScreenState extends State<TodoScreen> {
   final TextEditingController _detailController = TextEditingController(); // Controller for task details
   final CollectionReference _todosCollection = FirebaseFirestore.instance.collection('todos');
 
+  // Sign out function
+  void _signOut() async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushReplacementNamed(context, '/signin'); // Navigate to SigninScreen after sign-out
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,6 +94,15 @@ class _TodoScreenState extends State<TodoScreen> {
           ),
         ),
         backgroundColor: Theme.of(context).primaryColor,  // Keep the background color as primary theme color (teal)
+        actions: [
+          // Add Sign Out Button
+          IconButton(
+            icon: FaIcon(FontAwesomeIcons.signOutAlt), // FontAwesome Sign Out icon
+            onPressed: _signOut, // Call sign-out function
+            color: Colors.white,
+            tooltip: 'Sign Out',
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -134,7 +119,6 @@ class _TodoScreenState extends State<TodoScreen> {
                     sortedTasks.sort((a, b) {
                       bool isCompletedA = a['isCompleted'] ?? false;
                       bool isCompletedB = b['isCompleted'] ?? false;
-                      // Uncompleted tasks come first
                       return isCompletedA == isCompletedB ? 0 : (isCompletedA ? 1 : -1);
                     });
 
@@ -362,7 +346,8 @@ class _TodoScreenState extends State<TodoScreen> {
                 if (_editTaskController.text.isNotEmpty) {
                   _todosCollection.doc(id).update({
                     'task': _editTaskController.text,
-                    'detail': _editDetailController.text, // Update task detail
+                    'detail': _editDetailController.text, // Update task details
+                    'isCompleted': false, // Mark as incomplete after edit
                   });
                   Navigator.of(context).pop();
                 }
